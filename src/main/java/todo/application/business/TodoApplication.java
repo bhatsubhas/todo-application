@@ -44,4 +44,14 @@ public class TodoApplication
 			throw new TodoApplicationException( String.format( "Target date should be in %s format", DATE_PATTERN ) );
 		}
 	}
+
+	public TodoTask getTodoTask( long taskId ) throws TodoApplicationException
+	{
+		TodoTask todoTask = dataAccess.get( taskId );
+		if ( todoTask == null )
+		{
+			throw new TodoApplicationException( String.format( "Todo task with id %d not found", taskId ) );
+		}
+		return todoTask;
+	}
 }

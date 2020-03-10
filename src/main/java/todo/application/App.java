@@ -123,7 +123,8 @@ public class App
 			else
 			{
 				Long taskId = Long.parseLong( taskIdStr );
-				//TODO Call business logic to view a todo task
+				TodoTask todoTask = todoApp.getTodoTask( taskId );
+				console.println(todoTask);
 			}
 		}
 		catch ( NumberFormatException e )

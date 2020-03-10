@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.*;
 
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -103,7 +104,7 @@ class AppTest
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
 		assertEquals( "Task name cannot be empty", exception.getMessage() );
 	}
-	
+
 	@Test
 	void testTodoTaskCannotBeCreatedForPastDate()
 	{
@@ -111,5 +112,28 @@ class AppTest
 		String targetDateStr = "15/03/2019";
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
 		assertEquals( "Task cannot be created for past date", exception.getMessage() );
+	}
+
+	@Test
+	void testReturnTodoTaskForATaskId() throws TodoApplicationException
+	{
+		TodoTask todoTask = mock( TodoTask.class );
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( 1L ) ).thenReturn( todoTask );
+		todoApp = new TodoApplication( todoDataAccess );
+		todoTask = todoApp.getTodoTask( 1L );
+		assertNotNull( todoTask );
+		verify( todoDataAccess ).get( 1L );
+	}
+
+	@Test
+	void testThrowErrorIfTodoTaskIsNotAvailableForTaskId()
+	{
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( 1L ) ).thenReturn( null );
+		todoApp = new TodoApplication( todoDataAccess );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.getTodoTask( 1L ) );
+		assertEquals( "Todo task with id 1 not found", exception.getMessage() );
+		verify( todoDataAccess ).get( 1L );
 	}
 }
