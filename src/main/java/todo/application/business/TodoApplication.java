@@ -73,4 +73,19 @@ public class TodoApplication
 			throw new TodoApplicationException( "Completion date should be in dd/MM/yyyy format" );
 		}
 	}
+
+	public void deleteTodoTask( long taskId ) throws TodoApplicationException
+	{
+		TodoTask todoTask = dataAccess.get( taskId );
+		if ( todoTask == null )
+		{
+			throw new TodoApplicationException( String.format( "Task with id %d not found", taskId ) );
+		}
+		if ( todoTask.getCompletionDate() == null )
+		{
+			throw new TodoApplicationException( "Only completed task can be deleted" );
+		}
+		dataAccess.delete( todoTask );
+
+	}
 }

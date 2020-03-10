@@ -89,7 +89,8 @@ public class App
 		try
 		{
 			Long taskId = getTodoTaskId( "Enter task id to delete:" );
-			//TODO Call business logic to delete a todo task
+			todoApp.deleteTodoTask( taskId );
+			console.println( String.format( "Task with id %d deleted", taskId ) );
 		}
 		catch ( TodoApplicationException e )
 		{

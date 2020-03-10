@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doNothing;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -182,4 +183,47 @@ class AppTest
 		verify( todoTask ).getTargetDate();
 		verify( todoDataAccess ).get( 1L );
 	}
+
+	@Test
+	void testCannotDeleteIfCompletionIsNotSet()
+	{
+		long taskId = 1L;
+		TodoTask todoTask = mock( TodoTask.class );
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
+		doNothing().when( todoDataAccess ).delete( todoTask );
+		todoApp = new TodoApplication( todoDataAccess );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.deleteTodoTask( taskId ) );
+		assertEquals( "Only completed task can be deleted", exception.getMessage() );
+		verify( todoDataAccess ).get( taskId );
+	}
+
+	@Test
+	void testDeleteCompletedTodoTask() throws TodoApplicationException
+	{
+		long taskId = 1L;
+		TodoTask todoTask = mock( TodoTask.class );
+		when( todoTask.getCompletionDate() ).thenReturn( new GregorianCalendar( 2020, 02, 13 ).getTime() );
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
+		doNothing().when( todoDataAccess ).delete( todoTask );
+		todoApp = new TodoApplication( todoDataAccess );
+		todoApp.deleteTodoTask( taskId );
+		verify( todoDataAccess ).get( taskId );
+		verify( todoTask ).getCompletionDate();
+		verify( todoDataAccess ).delete( todoTask );
+	}
+
+	@Test
+	void testThrowErrorIfTodoTaskNotFoundForDelete()
+	{
+		long taskId = 1L;
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( taskId ) ).thenReturn( null );
+		todoApp = new TodoApplication( todoDataAccess );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.deleteTodoTask( taskId ) );
+		assertEquals( "Task with id 1 not found", exception.getMessage() );
+		verify( todoDataAccess ).get( taskId );
+	}
+
 }
