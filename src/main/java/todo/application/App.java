@@ -75,8 +75,8 @@ public class App
 			String taskName = getInputFromConsole( "Enter task name to add:" );
 			String targetDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
 			TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
-			console.println( "Todo task created" );
 			console.println( todoTask );
+			console.println( "Todo task created!" );
 		}
 		catch ( TodoApplicationException e )
 		{
@@ -90,7 +90,7 @@ public class App
 		{
 			Long taskId = getTodoTaskId( "Enter task id to delete:" );
 			todoApp.deleteTodoTask( taskId );
-			console.println( String.format( "Task with id %d deleted", taskId ) );
+			console.println( String.format( "Task with id %d deleted!", taskId ) );
 		}
 		catch ( TodoApplicationException e )
 		{
@@ -105,7 +105,7 @@ public class App
 			Long taskId = getTodoTaskId( "Enter task id to mark complete:" );
 			String completionDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
 			todoApp.updateTodoTask( taskId, completionDateStr );
-			console.println( String.format( "Task with id %d marked completed", taskId ) );
+			console.println( String.format( "Task with id %d marked complete!", taskId ) );
 		}
 		catch ( TodoApplicationException e )
 		{
@@ -120,7 +120,10 @@ public class App
 			String taskIdStr = getInputFromConsole( "Enter task id to view:" );
 			if ( taskIdStr.isEmpty() || taskIdStr.equals( "\n" ) )
 			{
-				//TODO Call business logic to view all todo tasks
+				for ( TodoTask todoTask : todoApp.getAllTodoTasks() )
+				{
+					console.println( todoTask );
+				}
 			}
 			else
 			{

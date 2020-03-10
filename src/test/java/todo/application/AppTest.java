@@ -15,6 +15,7 @@ import static org.mockito.Mockito.doNothing;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -226,4 +227,14 @@ class AppTest
 		verify( todoDataAccess ).get( taskId );
 	}
 
+	@Test
+	void testReturnEmptyTodoTasksListWhenNotTodoTasksPresent()
+	{
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.getAll() ).thenReturn( new ArrayList<>() );
+		todoApp = new TodoApplication( todoDataAccess );
+		List<TodoTask> todoTasks = todoApp.getAllTodoTasks();
+		assertEquals( 0, todoTasks.size() );
+		verify( todoDataAccess ).getAll();
+	}
 }

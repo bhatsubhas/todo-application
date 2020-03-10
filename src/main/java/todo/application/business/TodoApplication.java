@@ -4,6 +4,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import todo.application.data.access.TodoDataAccess;
 import todo.application.data.entity.TodoTask;
@@ -87,5 +88,10 @@ public class TodoApplication
 		}
 		dataAccess.delete( todoTask );
 
+	}
+
+	public List<TodoTask> getAllTodoTasks()
+	{
+		return dataAccess.getAll();
 	}
 }
