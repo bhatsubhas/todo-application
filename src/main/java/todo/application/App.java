@@ -10,6 +10,7 @@ import java.io.PrintStream;
 
 import todo.application.business.TodoApplication;
 import todo.application.data.access.impl.TodoDataAccessImpl;
+import todo.application.data.entity.TodoTask;
 import todo.application.exceptions.TodoApplicationException;
 
 public class App
@@ -73,7 +74,9 @@ public class App
 		{
 			String taskName = getInputFromConsole( "Enter task name to add:" );
 			String targetDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
-			//TODO Call business logic to add a todo task
+			TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
+			console.println( "Todo task created" );
+			console.println( todoTask );
 		}
 		catch ( TodoApplicationException e )
 		{

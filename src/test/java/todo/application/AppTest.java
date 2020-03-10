@@ -3,14 +3,113 @@
  */
 package todo.application;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.GregorianCalendar;
+import java.util.List;
+
+import todo.application.business.TodoApplication;
+import todo.application.data.access.TodoDataAccess;
+import todo.application.data.entity.TodoTask;
+import todo.application.exceptions.TodoApplicationException;
 
 class AppTest
 {
-	@Test
-	void sampleTest()
+	private TodoApplication todoApp;
+
+	@BeforeEach
+	void setUp()
 	{
-		fail();
+		todoApp = new TodoApplication( new TodoDataAccess()
+		{
+
+			@Override
+			public void update( TodoTask todoTask )
+			{
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public void save( TodoTask todoTask )
+			{
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public List<TodoTask> getAll()
+			{
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public TodoTask get( long taskId )
+			{
+				// TODO Auto-generated method stub
+				return null;
+			}
+
+			@Override
+			public void delete( TodoTask todoTask )
+			{
+				// TODO Auto-generated method stub
+
+			}
+
+			@Override
+			public TodoTask create()
+			{
+				TodoTask todoTask = new TodoTask();
+				todoTask.setTaskId( 1L );
+				return todoTask;
+			}
+		} );
+	}
+
+	@Test
+	void testCreateTodoTaskWithRequiredDetails() throws TodoApplicationException
+	{
+		String taskName = "Read a book";
+		String targetDateStr = "15/03/2020";
+		TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
+		assertNotNull( todoTask );
+		assertTrue( todoTask.getTaskId() > 0 );
+		assertEquals( taskName, todoTask.getTaskName() );
+		assertEquals( new GregorianCalendar( 2020, 02, 15 ).getTime(), todoTask.getTargetDate() );
+	}
+
+	@Test
+	void testTargetDateShouldBeInRequiredFormat()
+	{
+		String taskName = "Read a book";
+		String targetDateStr = "15/2020";
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
+		assertEquals( "Target date should be in dd/MM/yyyy format", exception.getMessage() );
+	}
+
+	@Test
+	void testTaskNameCannotBeEmpty()
+	{
+		String taskName = "";
+		String targetDateStr = "15/03/2020";
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
+		assertEquals( "Task name cannot be empty", exception.getMessage() );
+	}
+	
+	@Test
+	void testTodoTaskCannotBeCreatedForPastDate()
+	{
+		String taskName = "Read a book";
+		String targetDateStr = "15/03/2019";
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
+		assertEquals( "Task cannot be created for past date", exception.getMessage() );
 	}
 }
