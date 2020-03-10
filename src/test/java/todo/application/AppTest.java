@@ -7,11 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.*;
 
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
@@ -134,6 +137,49 @@ class AppTest
 		todoApp = new TodoApplication( todoDataAccess );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.getTodoTask( 1L ) );
 		assertEquals( "Todo task with id 1 not found", exception.getMessage() );
+		verify( todoDataAccess ).get( 1L );
+	}
+
+	@Test
+	void testUpdateTodoTaskWithCompletionDate() throws TodoApplicationException
+	{
+		long taskId = 1L;
+		String completionDateStr = "16/03/2020";
+		Date completionDate = new GregorianCalendar( 2020, 2, 16 ).getTime();
+
+		TodoTask todoTask = mock( TodoTask.class );
+		when( todoTask.getTargetDate() ).thenReturn( new GregorianCalendar( 2020, 2, 16 ).getTime() );
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
+		todoApp = new TodoApplication( todoDataAccess );
+		todoApp.updateTodoTask( taskId, completionDateStr );
+		verify( todoDataAccess ).get( taskId );
+		verify( todoTask ).setCompletionDate( completionDate );
+		verify( todoDataAccess ).update( todoTask );
+	}
+
+	@Test
+	void testCompletionDateShouldBeInRequiredFormat()
+	{
+		long taskId = 1L;
+		String completionDateStr = "23/2020";
+		todoApp = new TodoApplication( null );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.updateTodoTask( taskId, completionDateStr ) );
+		assertEquals( "Completion date should be in dd/MM/yyyy format", exception.getMessage() );
+	}
+
+	@Test
+	void testCompletionDateCannotBeLessThanTargetDate() throws TodoApplicationException
+	{
+		String completionDateStr = "13/03/2020";
+		TodoTask todoTask = mock( TodoTask.class );
+		when( todoTask.getTargetDate() ).thenReturn( new GregorianCalendar( 2020, 02, 14 ).getTime() );
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( 1L ) ).thenReturn( todoTask );
+		todoApp = new TodoApplication( todoDataAccess );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.updateTodoTask( 1L, completionDateStr ) );
+		assertEquals( "Completion date cannot be less than target date", exception.getMessage() );
+		verify( todoTask ).getTargetDate();
 		verify( todoDataAccess ).get( 1L );
 	}
 }

@@ -103,7 +103,8 @@ public class App
 		{
 			Long taskId = getTodoTaskId( "Enter task id to mark complete:" );
 			String completionDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
-			//TODO Call business logic to mark a todo task as complete
+			todoApp.updateTodoTask( taskId, completionDateStr );
+			console.println( String.format( "Task with id %d marked completed", taskId ) );
 		}
 		catch ( TodoApplicationException e )
 		{
@@ -124,7 +125,7 @@ public class App
 			{
 				Long taskId = Long.parseLong( taskIdStr );
 				TodoTask todoTask = todoApp.getTodoTask( taskId );
-				console.println(todoTask);
+				console.println( todoTask );
 			}
 		}
 		catch ( NumberFormatException e )

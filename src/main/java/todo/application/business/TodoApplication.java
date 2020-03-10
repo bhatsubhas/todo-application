@@ -54,4 +54,23 @@ public class TodoApplication
 		}
 		return todoTask;
 	}
+
+	public void updateTodoTask( long taskId, String completionDateStr ) throws TodoApplicationException
+	{
+		try
+		{
+			Date completionDate = dateFormat.parse( completionDateStr );
+			TodoTask todoTask = dataAccess.get( taskId );
+			if ( completionDate.before( todoTask.getTargetDate() ) )
+			{
+				throw new TodoApplicationException( "Completion date cannot be less than target date" );
+			}
+			todoTask.setCompletionDate( completionDate );
+			dataAccess.update( todoTask );
+		}
+		catch ( ParseException e )
+		{
+			throw new TodoApplicationException( "Completion date should be in dd/MM/yyyy format" );
+		}
+	}
 }
