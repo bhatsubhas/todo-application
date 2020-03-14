@@ -5,25 +5,32 @@ package todo.application;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.Properties;
 
 import todo.application.business.TodoApplication;
 import todo.application.data.access.impl.TodoDataAccessImpl;
 import todo.application.data.entity.TodoTask;
 import todo.application.exceptions.TodoApplicationException;
+import todo.application.util.DateUtil;
 
 public class App
 {
 	private static final String DASH_LINE = "-------------------------------------------------------------";
 	private static PrintStream console = System.out;
 	private static PrintStream error = System.err;
+	private static String datePattern;
 
-	public static void main( String[] args ) throws TodoApplicationException
+	public static void main( String[] args ) throws TodoApplicationException, IOException
 	{
 		boolean isContinue = true;
+		Properties properties = getApplicationProperties();
+		datePattern = properties.getProperty( "date.pattern" );
+		DateUtil dateUtil = new DateUtil( datePattern );
 		TodoDataAccessImpl dataAccess = new TodoDataAccessImpl();
-		TodoApplication todoApp = new TodoApplication( dataAccess );
+		TodoApplication todoApp = new TodoApplication( dataAccess, dateUtil );
 
 		console.println( DASH_LINE );
 		console.println( "Welcome to Todo Application" );
@@ -63,6 +70,22 @@ public class App
 		}
 	}
 
+	protected static Properties getApplicationProperties() throws TodoApplicationException
+	{
+		try
+		{
+			ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+			InputStream inputStream = classLoader.getResourceAsStream( "application.properties" );
+			Properties properties = new Properties();
+			properties.load( inputStream );
+			return properties;
+		}
+		catch ( IOException e )
+		{
+			throw new TodoApplicationException( "Error while loading application.properties", e );
+		}
+	}
+
 	protected static boolean isMatchingCommand( String userCommand, String longCmd, String shortCmd )
 	{
 		return userCommand.equals( longCmd ) || userCommand.equals( shortCmd );
@@ -73,7 +96,7 @@ public class App
 		try
 		{
 			String taskName = getInputFromConsole( "Enter task name to add:" );
-			String targetDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
+			String targetDateStr = getInputFromConsole( String.format( "Enter target date [format:%s]:", datePattern ) );
 			TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
 			console.println( todoTask );
 			console.println( "Todo task created!" );
@@ -103,7 +126,7 @@ public class App
 		try
 		{
 			Long taskId = getTodoTaskId( "Enter task id to mark complete:" );
-			String completionDateStr = getInputFromConsole( "Enter target date [format:dd/MM/yyyy]:" );
+			String completionDateStr = getInputFromConsole( String.format( "Enter complete date [format:%s]:", datePattern ) );
 			todoApp.updateTodoTask( taskId, completionDateStr );
 			console.println( String.format( "Task with id %d marked complete!", taskId ) );
 		}

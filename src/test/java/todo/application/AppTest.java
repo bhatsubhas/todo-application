@@ -6,13 +6,14 @@ package todo.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doNothing;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -24,84 +25,47 @@ import todo.application.business.TodoApplication;
 import todo.application.data.access.TodoDataAccess;
 import todo.application.data.entity.TodoTask;
 import todo.application.exceptions.TodoApplicationException;
+import todo.application.util.DateUtil;
 
 class AppTest
 {
+	private static final String DATE_PATTERN = "dd/MM/yyyy";
 	private TodoApplication todoApp;
+	private DateUtil dateUtil = new DateUtil( DATE_PATTERN );
 
 	@BeforeEach
 	void setUp()
 	{
-		todoApp = new TodoApplication( new TodoDataAccess()
-		{
 
-			@Override
-			public void update( TodoTask todoTask )
-			{
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public void save( TodoTask todoTask )
-			{
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public List<TodoTask> getAll()
-			{
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public TodoTask get( long taskId )
-			{
-				// TODO Auto-generated method stub
-				return null;
-			}
-
-			@Override
-			public void delete( TodoTask todoTask )
-			{
-				// TODO Auto-generated method stub
-
-			}
-
-			@Override
-			public TodoTask create()
-			{
-				TodoTask todoTask = new TodoTask();
-				todoTask.setTaskId( 1L );
-				return todoTask;
-			}
-		} );
+		TestTodoDataAccessImpl dataAccess = new TestTodoDataAccessImpl();
+		todoApp = new TodoApplication( dataAccess, dateUtil );
 	}
 
 	@Test
+	@DisplayName( "Test to create Todo Task with required details" )
 	void testCreateTodoTaskWithRequiredDetails() throws TodoApplicationException
 	{
 		String taskName = "Read a book";
 		String targetDateStr = "15/03/2020";
 		TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
 		assertNotNull( todoTask );
-		assertTrue( todoTask.getTaskId() > 0 );
+		assertNotNull( todoTask.getTaskId() );
 		assertEquals( taskName, todoTask.getTaskName() );
 		assertEquals( new GregorianCalendar( 2020, 02, 15 ).getTime(), todoTask.getTargetDate() );
 	}
 
 	@Test
+	@DisplayName( "Test to not to allow create Todo Task with Target date not in requested format" )
 	void testTargetDateShouldBeInRequiredFormat()
 	{
 		String taskName = "Read a book";
 		String targetDateStr = "15/2020";
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.createTodoTask( taskName, targetDateStr ) );
-		assertEquals( "Target date should be in dd/MM/yyyy format", exception.getMessage() );
+		assertEquals( String.format( "Date must be in '%s' format", DATE_PATTERN ), exception.getMessage() );
 	}
 
 	@Test
+	@DisplayName( "Test to not to create Todo Task with Task name empty" )
 	void testTaskNameCannotBeEmpty()
 	{
 		String taskName = "";
@@ -111,6 +75,7 @@ class AppTest
 	}
 
 	@Test
+	@DisplayName( "Test to not to create Todo Task with Target date less than current date" )
 	void testTodoTaskCannotBeCreatedForPastDate()
 	{
 		String taskName = "Read a book";
@@ -120,40 +85,58 @@ class AppTest
 	}
 
 	@Test
+	@DisplayName( "Test to create Todo Task with Target date equal to current date" )
+	void testTodoTaskCannotBeCreatedForCurrentDate() throws TodoApplicationException
+	{
+		String taskName = "Read a book";
+		String targetDateStr = dateUtil.convertToString( new GregorianCalendar().getTime() );
+		Date expectedTargetDate = dateUtil.convertToDate( targetDateStr );
+		TodoTask todoTask = todoApp.createTodoTask( taskName, targetDateStr );
+		assertNotNull( todoTask );
+		assertNotNull( todoTask.getTaskId() );
+		assertEquals( taskName, todoTask.getTaskName() );
+		assertEquals( expectedTargetDate, todoTask.getTargetDate() );
+
+	}
+
+	@Test
+	@DisplayName( "Test to get Todo Task when Todo Task is present for the provided Task Id" )
 	void testReturnTodoTaskForATaskId() throws TodoApplicationException
 	{
-		TodoTask todoTask = mock( TodoTask.class );
+		TodoTask todoTask = spy( TodoTask.class );
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( 1L ) ).thenReturn( todoTask );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		todoTask = todoApp.getTodoTask( 1L );
 		assertNotNull( todoTask );
 		verify( todoDataAccess ).get( 1L );
 	}
 
 	@Test
-	void testThrowErrorIfTodoTaskIsNotAvailableForTaskId()
+	@DisplayName( "Test to throw exception while getting Todo Task  when Todo Task is not present for the provided Task Id" )
+	void testThrowExceptionIfTodoTaskIsNotAvailableForTaskId()
 	{
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( 1L ) ).thenReturn( null );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.getTodoTask( 1L ) );
 		assertEquals( "Todo task with id 1 not found", exception.getMessage() );
 		verify( todoDataAccess ).get( 1L );
 	}
 
 	@Test
+	@DisplayName( "Test to update Todo Task with Completion Date when Todo Task is present for provided Task Id" )
 	void testUpdateTodoTaskWithCompletionDate() throws TodoApplicationException
 	{
 		long taskId = 1L;
 		String completionDateStr = "16/03/2020";
 		Date completionDate = new GregorianCalendar( 2020, 2, 16 ).getTime();
 
-		TodoTask todoTask = mock( TodoTask.class );
+		TodoTask todoTask = spy( TodoTask.class );
 		when( todoTask.getTargetDate() ).thenReturn( new GregorianCalendar( 2020, 2, 16 ).getTime() );
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		todoApp.updateTodoTask( taskId, completionDateStr );
 		verify( todoDataAccess ).get( taskId );
 		verify( todoTask ).setCompletionDate( completionDate );
@@ -161,16 +144,32 @@ class AppTest
 	}
 
 	@Test
+	@DisplayName( "Test to throw exception while updating Todo Task when Todo Task is not present for provided Task Id" )
+	void testUpdateThrowsExceptionWhenTodoTaskIsNotPresentForTaskId() throws TodoApplicationException
+	{
+		long taskId = 1L;
+		String completionDateStr = "13/03/2020";
+		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
+		when( todoDataAccess.get( taskId ) ).thenReturn( null );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
+		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.updateTodoTask( taskId, completionDateStr ) );
+		assertEquals( "Todo task with id 1 not found", exception.getMessage() );
+		verify( todoDataAccess ).get( taskId );
+	}
+
+	@Test
+	@DisplayName( "Test to throw exception while updating Todo Task when Completion Date is not in requested format" )
 	void testCompletionDateShouldBeInRequiredFormat()
 	{
 		long taskId = 1L;
 		String completionDateStr = "23/2020";
-		todoApp = new TodoApplication( null );
+		todoApp = new TodoApplication( null, dateUtil );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.updateTodoTask( taskId, completionDateStr ) );
-		assertEquals( "Completion date should be in dd/MM/yyyy format", exception.getMessage() );
+		assertEquals( String.format( "Date must be in '%s' format", DATE_PATTERN ), exception.getMessage() );
 	}
 
 	@Test
+	@DisplayName( "Test to throw exception while updating Todo Task when Completion Date is less than Target Date" )
 	void testCompletionDateCannotBeLessThanTargetDate() throws TodoApplicationException
 	{
 		String completionDateStr = "13/03/2020";
@@ -178,7 +177,7 @@ class AppTest
 		when( todoTask.getTargetDate() ).thenReturn( new GregorianCalendar( 2020, 02, 14 ).getTime() );
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( 1L ) ).thenReturn( todoTask );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.updateTodoTask( 1L, completionDateStr ) );
 		assertEquals( "Completion date cannot be less than target date", exception.getMessage() );
 		verify( todoTask ).getTargetDate();
@@ -186,6 +185,7 @@ class AppTest
 	}
 
 	@Test
+	@DisplayName( "Test to throw exception while deleting Todo Task when Completion Date is not set" )
 	void testCannotDeleteIfCompletionIsNotSet()
 	{
 		long taskId = 1L;
@@ -193,22 +193,23 @@ class AppTest
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
 		doNothing().when( todoDataAccess ).delete( todoTask );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.deleteTodoTask( taskId ) );
 		assertEquals( "Only completed task can be deleted", exception.getMessage() );
 		verify( todoDataAccess ).get( taskId );
 	}
 
 	@Test
+	@DisplayName( "Test to delete Todo Task if Completion Date is set" )
 	void testDeleteCompletedTodoTask() throws TodoApplicationException
 	{
 		long taskId = 1L;
-		TodoTask todoTask = mock( TodoTask.class );
+		TodoTask todoTask = spy( TodoTask.class );
 		when( todoTask.getCompletionDate() ).thenReturn( new GregorianCalendar( 2020, 02, 13 ).getTime() );
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( taskId ) ).thenReturn( todoTask );
 		doNothing().when( todoDataAccess ).delete( todoTask );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		todoApp.deleteTodoTask( taskId );
 		verify( todoDataAccess ).get( taskId );
 		verify( todoTask ).getCompletionDate();
@@ -216,25 +217,73 @@ class AppTest
 	}
 
 	@Test
+	@DisplayName( "Test to throw exception while deleting Todo Task when Todo Task is not found for the provide Task Id" )
 	void testThrowErrorIfTodoTaskNotFoundForDelete()
 	{
 		long taskId = 1L;
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.get( taskId ) ).thenReturn( null );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		TodoApplicationException exception = assertThrows( TodoApplicationException.class, () -> todoApp.deleteTodoTask( taskId ) );
-		assertEquals( "Task with id 1 not found", exception.getMessage() );
+		assertEquals( "Todo task with id 1 not found", exception.getMessage() );
 		verify( todoDataAccess ).get( taskId );
 	}
 
 	@Test
+	@DisplayName( "Test to get empty list when no Todo Tasks are not present in Database" )
 	void testReturnEmptyTodoTasksListWhenNotTodoTasksPresent()
 	{
 		TodoDataAccess todoDataAccess = mock( TodoDataAccess.class );
 		when( todoDataAccess.getAll() ).thenReturn( new ArrayList<>() );
-		todoApp = new TodoApplication( todoDataAccess );
+		todoApp = new TodoApplication( todoDataAccess, dateUtil );
 		List<TodoTask> todoTasks = todoApp.getAllTodoTasks();
 		assertEquals( 0, todoTasks.size() );
 		verify( todoDataAccess ).getAll();
+	}
+}
+
+class TestTodoDataAccessImpl implements TodoDataAccess
+{
+	@Override
+	public void update( TodoTask todoTask )
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void save( TodoTask todoTask )
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public List<TodoTask> getAll()
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public TodoTask get( long taskId )
+	{
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void delete( TodoTask todoTask )
+	{
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public TodoTask create()
+	{
+		TodoTask todoTask = new TodoTask();
+		todoTask.setTaskId( 1L );
+		return todoTask;
 	}
 }

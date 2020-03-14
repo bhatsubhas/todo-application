@@ -1,49 +1,40 @@
 package todo.application.business;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 import todo.application.data.access.TodoDataAccess;
 import todo.application.data.entity.TodoTask;
 import todo.application.exceptions.TodoApplicationException;
+import todo.application.util.DateUtil;
 
 public class TodoApplication
 {
-	private static final String DATE_PATTERN = "dd/MM/yyyy";
-	private static DateFormat dateFormat = new SimpleDateFormat( DATE_PATTERN );
 	private TodoDataAccess dataAccess;
+	private DateUtil dateUtil;
 
-	public TodoApplication( TodoDataAccess dataAccess )
+	public TodoApplication( TodoDataAccess dataAccess, DateUtil dateUtil )
 	{
 		this.dataAccess = dataAccess;
+		this.dateUtil = dateUtil;
 	}
 
 	public TodoTask createTodoTask( String taskName, String targetDateStr ) throws TodoApplicationException
 	{
-		try
+		Date targetDate = dateUtil.convertToDate( targetDateStr );
+		if ( targetDate.before( dateUtil.getToday() ) )
 		{
-			Date targetDate = dateFormat.parse( targetDateStr );
-			if ( targetDate.before( new Date() ) )
-			{
-				throw new TodoApplicationException( "Task cannot be created for past date" );
-			}
-			if ( taskName.isEmpty() )
-			{
-				throw new TodoApplicationException( "Task name cannot be empty" );
-			}
-			TodoTask todoTask = dataAccess.create();
-			todoTask.setTaskName( taskName );
-			todoTask.setTargetDate( targetDate );
-			dataAccess.save( todoTask );
-			return todoTask;
+			throw new TodoApplicationException( "Task cannot be created for past date" );
 		}
-		catch ( ParseException e )
+		if ( taskName.isEmpty() )
 		{
-			throw new TodoApplicationException( String.format( "Target date should be in %s format", DATE_PATTERN ) );
+			throw new TodoApplicationException( "Task name cannot be empty" );
 		}
+		TodoTask todoTask = dataAccess.create();
+		todoTask.setTaskName( taskName );
+		todoTask.setTargetDate( targetDate );
+		dataAccess.save( todoTask );
+		return todoTask;
 	}
 
 	public TodoTask getTodoTask( long taskId ) throws TodoApplicationException
@@ -58,30 +49,19 @@ public class TodoApplication
 
 	public void updateTodoTask( long taskId, String completionDateStr ) throws TodoApplicationException
 	{
-		try
+		Date completionDate = dateUtil.convertToDate( completionDateStr );
+		TodoTask todoTask = getTodoTask( taskId );
+		if ( completionDate.before( todoTask.getTargetDate() ) )
 		{
-			Date completionDate = dateFormat.parse( completionDateStr );
-			TodoTask todoTask = dataAccess.get( taskId );
-			if ( completionDate.before( todoTask.getTargetDate() ) )
-			{
-				throw new TodoApplicationException( "Completion date cannot be less than target date" );
-			}
-			todoTask.setCompletionDate( completionDate );
-			dataAccess.update( todoTask );
+			throw new TodoApplicationException( "Completion date cannot be less than target date" );
 		}
-		catch ( ParseException e )
-		{
-			throw new TodoApplicationException( "Completion date should be in dd/MM/yyyy format" );
-		}
+		todoTask.setCompletionDate( completionDate );
+		dataAccess.update( todoTask );
 	}
 
 	public void deleteTodoTask( long taskId ) throws TodoApplicationException
 	{
-		TodoTask todoTask = dataAccess.get( taskId );
-		if ( todoTask == null )
-		{
-			throw new TodoApplicationException( String.format( "Task with id %d not found", taskId ) );
-		}
+		TodoTask todoTask = getTodoTask( taskId );
 		if ( todoTask.getCompletionDate() == null )
 		{
 			throw new TodoApplicationException( "Only completed task can be deleted" );
